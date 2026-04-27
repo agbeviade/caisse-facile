@@ -40,13 +40,6 @@ workflows:
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt
-    publishing:
-      email:
-        recipients:
-          - $CM_NOTIFY_EMAIL
-        notify:
-          success: true
-          failure: true
 
   android-release:
     name: Android Release APK
@@ -96,7 +89,3 @@ workflows:
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/*.aab
-    publishing:
-      email:
-        recipients:
-          - $CM_NOTIFY_EMAIL
