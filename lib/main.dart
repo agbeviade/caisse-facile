@@ -47,7 +47,7 @@ class CaisseFacileApp extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14)),
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 1,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14)),

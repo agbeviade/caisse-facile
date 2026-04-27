@@ -50,8 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () async {
-          await onTap();
+        onTap: () {
+          onTap();
           _refresh();
         },
         child: Padding(
