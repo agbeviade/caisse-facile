@@ -19,7 +19,7 @@ class DatabaseHelper {
     final path = p.join(dir.path, 'caisse_facile.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -40,6 +40,7 @@ class DatabaseHelper {
         stock_qty REAL NOT NULL DEFAULT 0,
         alert_threshold REAL NOT NULL DEFAULT 0,
         expiry_date TEXT,
+        image_path TEXT,
         remote_id TEXT,
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
         dirty INTEGER NOT NULL DEFAULT 1,
@@ -191,6 +192,9 @@ class DatabaseHelper {
         );
       ''');
       await _createDirtyTriggers(db);
+    }
+    if (oldVersion < 3) {
+      await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
     }
   }
 

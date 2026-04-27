@@ -8,7 +8,9 @@ class AuthService {
   SupabaseClient get _client => Supabase.instance.client;
 
   String? _shopId;
+  String? _shopName;
   String? get shopId => _shopId;
+  String? get shopName => _shopName;
   User? get currentUser => _client.auth.currentUser;
   bool get isSignedIn => currentUser != null;
 
@@ -25,6 +27,7 @@ class AuthService {
 
   Future<void> signOut() async {
     _shopId = null;
+    _shopName = null;
     await _client.auth.signOut();
   }
 
@@ -43,8 +46,12 @@ class AuthService {
         params: {'p_name': name, 'p_currency': currency});
     final id = res as String;
     _shopId = id;
+    _shopName = name;
     return id;
   }
 
-  void setShop(String id) => _shopId = id;
+  void setShop(String id, {String? name}) {
+    _shopId = id;
+    if (name != null) _shopName = name;
+  }
 }

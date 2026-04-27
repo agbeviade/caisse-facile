@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../config/env.dart';
 import '../db/product_dao.dart';
 import '../db/sale_dao.dart';
+import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../utils/formatters.dart';
+import '../widgets/app_drawer.dart';
 import 'catalog_screen.dart';
 import 'counter_sale_screen.dart';
 import 'delivery_men_screen.dart';
@@ -96,9 +98,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final shopName = AuthService.instance.shopName;
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Caisse Facile'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Caisse Facile',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            if (shopName != null && shopName.isNotEmpty)
+              Text(shopName,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.normal)),
+          ],
+        ),
         actions: [
           if (Env.hasSupabase)
             IconButton(

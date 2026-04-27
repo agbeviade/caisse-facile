@@ -8,6 +8,7 @@ class Product {
   final double stockQty;
   final double alertThreshold;
   final DateTime? expiryDate;
+  final String? imagePath;
 
   Product({
     this.id,
@@ -19,6 +20,7 @@ class Product {
     required this.stockQty,
     this.alertThreshold = 0,
     this.expiryDate,
+    this.imagePath,
   });
 
   Product copyWith({
@@ -31,6 +33,7 @@ class Product {
     double? stockQty,
     double? alertThreshold,
     DateTime? expiryDate,
+    String? imagePath,
   }) {
     return Product(
       id: id ?? this.id,
@@ -42,6 +45,7 @@ class Product {
       stockQty: stockQty ?? this.stockQty,
       alertThreshold: alertThreshold ?? this.alertThreshold,
       expiryDate: expiryDate ?? this.expiryDate,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 
@@ -55,6 +59,7 @@ class Product {
         'stock_qty': stockQty,
         'alert_threshold': alertThreshold,
         'expiry_date': expiryDate?.toIso8601String(),
+        'image_path': imagePath,
       };
 
   factory Product.fromMap(Map<String, dynamic> m) => Product(
@@ -69,5 +74,6 @@ class Product {
         expiryDate: m['expiry_date'] != null
             ? DateTime.tryParse(m['expiry_date'] as String)
             : null,
+        imagePath: m['image_path'] as String?,
       );
 }

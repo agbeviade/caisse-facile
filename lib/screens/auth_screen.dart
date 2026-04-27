@@ -127,7 +127,7 @@ class _ShopPickerScreenState extends State<ShopPickerScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Nom de l'épicerie"),
+        title: const Text("Nom de la boutique"),
         content: TextField(controller: ctrl, autofocus: true),
         actions: [
           TextButton(
@@ -145,8 +145,8 @@ class _ShopPickerScreenState extends State<ShopPickerScreen> {
     Navigator.of(context).pop(true);
   }
 
-  void _pick(String id) {
-    AuthService.instance.setShop(id);
+  void _pick(String id, String name) {
+    AuthService.instance.setShop(id, name: name);
     Navigator.of(context).pop(true);
   }
 
@@ -154,7 +154,7 @@ class _ShopPickerScreenState extends State<ShopPickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Choisir l'épicerie"),
+        title: const Text("Choisir la boutique"),
         actions: [
           IconButton(
               icon: const Icon(Icons.logout),
@@ -179,13 +179,13 @@ class _ShopPickerScreenState extends State<ShopPickerScreen> {
                       children: [
                         const Icon(Icons.storefront, size: 80, color: Colors.grey),
                         const SizedBox(height: 12),
-                        const Text("Aucune épicerie associée à ce compte",
+                        const Text("Aucune boutique associée à ce compte",
                             textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         FilledButton.icon(
                             onPressed: _create,
                             icon: const Icon(Icons.add),
-                            label: const Text("Créer une épicerie")),
+                            label: const Text("Créer une boutique")),
                       ],
                     ),
                   ),
@@ -198,13 +198,14 @@ class _ShopPickerScreenState extends State<ShopPickerScreen> {
                         leading: const Icon(Icons.store),
                         title: Text(shop['name'] as String),
                         subtitle: Text('Rôle: ${row['role']}'),
-                        onTap: () => _pick(shop['id'] as String),
+                        onTap: () => _pick(
+                            shop['id'] as String, shop['name'] as String),
                       );
                     }),
                     const Divider(),
                     ListTile(
                       leading: const Icon(Icons.add),
-                      title: const Text("Créer une épicerie"),
+                      title: const Text("Créer une boutique"),
                       onTap: _create,
                     ),
                   ],
