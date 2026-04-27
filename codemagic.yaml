@@ -16,10 +16,8 @@ workflows:
     scripts:
       - name: Bootstrap Flutter platforms
         script: |
-          # Génère android/ios si absents (premier build)
-          if [ ! -d "android" ]; then
-            flutter create --platforms=android,ios --org com.caissefacile .
-          fi
+          # Idempotent: génère / complète android/ios (MainActivity, build.gradle, etc.)
+          flutter create --platforms=android,ios --org com.caissefacile .
       - name: Inject Supabase env into Dart defines
         script: |
           echo "SUPABASE_URL=$SUPABASE_URL" >> $CM_ENV
@@ -60,9 +58,7 @@ workflows:
     scripts:
       - name: Bootstrap Flutter platforms
         script: |
-          if [ ! -d "android" ]; then
-            flutter create --platforms=android,ios --org com.caissefacile .
-          fi
+          flutter create --platforms=android,ios --org com.caissefacile .
       - name: Set up keystore
         script: |
           echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
