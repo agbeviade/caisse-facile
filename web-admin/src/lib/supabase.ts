@@ -1,29 +1,3 @@
-import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-export function browserClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-export function serverClient() {
-  const store = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => store.getAll(),
-        setAll: (list) => {
-          try {
-            list.forEach(({ name, value, options }) =>
-              store.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
-}
+// Deprecated: use `@/lib/supabase-browser` (client) or `@/lib/supabase-server` (server) instead.
+// Kept as re-export of the browser client only, so it stays safe in client bundles.
+export { browserClient } from './supabase-browser';

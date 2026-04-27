@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { serverClient } from '@/lib/supabase';
+import { serverClient } from '@/lib/supabase-server';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('fr-FR', {
