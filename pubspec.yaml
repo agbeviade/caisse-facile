@@ -1,0 +1,48 @@
+name: caisse_facile
+description: Application de gestion de stock et caisse pour épicerie de détail.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management
+  provider: ^6.1.2
+
+  # SQLite
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  path_provider: ^2.1.4
+
+  # Barcode / QR scanning (uses Google ML Kit on Android)
+  mobile_scanner: ^5.2.3
+  qr_flutter: ^4.1.0
+
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.4.2
+
+  # PDF / impression / partage (WhatsApp)
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  barcode: ^2.2.8
+  share_plus: ^10.0.2
+
+  # Cloud sync / auth
+  supabase_flutter: ^2.5.6
+  connectivity_plus: ^6.0.5
+  crypto: ^3.0.5
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
