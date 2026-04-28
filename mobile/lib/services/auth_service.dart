@@ -1,6 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/env.dart';
+
 /// Wraps Supabase auth + tracks the active shop_id for RLS.
+///
+/// All Supabase calls are guarded by [Env.hasSupabase] so the app stays
+/// fully usable in offline-only mode (when no SUPABASE_URL is provided
+/// at build time).
 class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
@@ -11,8 +17,9 @@ class AuthService {
   String? _shopName;
   String? get shopId => _shopId;
   String? get shopName => _shopName;
-  User? get currentUser => _client.auth.currentUser;
-  bool get isSignedIn => currentUser != null;
+  User? get currentUser =>
+      Env.hasSupabase ? _client.auth.currentUser : null;
+  bool get isSignedIn => Env.hasSupabase && currentUser != null;
 
   Future<void> signInWithPassword(
       {required String email, required String password}) async {
