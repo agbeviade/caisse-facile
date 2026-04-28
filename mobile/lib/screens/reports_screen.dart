@@ -24,6 +24,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Map<String, double> _month = {};
   List<Map<String, dynamic>> _daily = [];
   List<Map<String, dynamic>> _perf = [];
+  List<Map<String, dynamic>> _topSellers = [];
   double _monthExpenses = 0;
   double _totalDebt = 0;
 
@@ -46,6 +47,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final perf = await _deliveryDao.performance(from: monthStart);
     final exp = await _expenseDao.totalBetween(monthStart, monthEnd);
     final debt = await _customerDao.totalDebt();
+    final tops =
+        await _saleDao.topSellers(from: monthStart, to: monthEnd, limit: 5);
 
     if (!mounted) return;
     setState(() {
@@ -55,6 +58,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _perf = perf;
       _monthExpenses = exp;
       _totalDebt = debt;
+      _topSellers = tops;
     });
   }
 
@@ -147,6 +151,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 16),
             _SalesChart(data: _last14()),
             const SizedBox(height: 16),
+            if (_topSellers.isNotEmpty) ...[
+              _TopSellersCard(rows: _topSellers),
+              const SizedBox(height: 16),
+            ],
             if (_perf.isNotEmpty) ...[
               const Text("Performance livreurs (mois)",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -164,6 +172,101 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 );
               }),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopSellersCard extends StatelessWidget {
+  final List<Map<String, dynamic>> rows;
+  const _TopSellersCard({required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final maxRevenue = rows
+        .map((r) => (r['revenue'] as num).toDouble())
+        .fold<double>(0, (a, b) => b > a ? b : a);
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Meilleures ventes — ce mois",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            ...rows.asMap().entries.map((e) {
+              final i = e.key;
+              final r = e.value;
+              final name = r['name'] as String? ?? '—';
+              final qty = (r['qty'] as num).toDouble();
+              final revenue = (r['revenue'] as num).toDouble();
+              final ratio = maxRevenue > 0 ? revenue / maxRevenue : 0.0;
+              final medalColors = [
+                const Color(0xFFFFC107),
+                const Color(0xFFB0BEC5),
+                const Color(0xFFCD7F32),
+              ];
+              final badgeColor = i < 3 ? medalColors[i] : scheme.primary;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: badgeColor,
+                      child: Text('${i + 1}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: ratio,
+                              minHeight: 6,
+                              backgroundColor: scheme.surfaceContainerHighest,
+                              valueColor:
+                                  AlwaysStoppedAnimation(scheme.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(fmtMoney(revenue),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold)),
+                        Text('${qty.toInt()} u.',
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),

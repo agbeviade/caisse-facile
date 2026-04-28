@@ -150,6 +150,28 @@ class SaleDao {
     return rows.map(Sale.fromMap).toList();
   }
 
+  /// Top selling products between [from] and [to], ordered by total revenue DESC.
+  /// Returns rows: name, qty (sum), revenue (sum sale_price*qty).
+  Future<List<Map<String, dynamic>>> topSellers({
+    required DateTime from,
+    required DateTime to,
+    int limit = 5,
+  }) async {
+    final db = await _db;
+    return db.rawQuery('''
+      SELECT p.name AS name,
+             SUM(si.quantity) AS qty,
+             SUM(si.quantity * si.sale_price) AS revenue
+      FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id
+      JOIN products p ON p.id = si.product_id
+      WHERE s.date >= ? AND s.date < ?
+      GROUP BY si.product_id, p.name
+      ORDER BY revenue DESC
+      LIMIT ?
+    ''', [from.toIso8601String(), to.toIso8601String(), limit]);
+  }
+
   Future<List<Map<String, dynamic>>> saleItemsDetailed(int saleId) async {
     final db = await _db;
     return db.rawQuery('''
