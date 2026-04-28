@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../db/customer_dao.dart';
 import '../db/product_dao.dart';
 import '../db/sale_dao.dart';
+import '../models/customer.dart';
 import '../utils/formatters.dart';
 import '../widgets/barcode_scanner_screen.dart';
 
@@ -14,7 +16,10 @@ class CounterSaleScreen extends StatefulWidget {
 class _CounterSaleScreenState extends State<CounterSaleScreen> {
   final _productDao = ProductDao();
   final _saleDao = SaleDao();
+  final _customerDao = CustomerDao();
   final List<CartItem> _cart = [];
+  Customer? _customer;
+  bool _onCredit = false;
 
   double get _total => _cart.fold(0, (s, e) => s + e.total);
 
@@ -123,15 +128,84 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
     });
   }
 
+  Future<void> _pickCustomer() async {
+    final list = await _customerDao.all();
+    if (!mounted) return;
+    final picked = await showModalBottomSheet<Customer?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('Choisir un acheteur',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+                if (_customer != null)
+                  ListTile(
+                    leading: const Icon(Icons.clear, color: Colors.red),
+                    title: const Text('Retirer l’acheteur',
+                        style: TextStyle(color: Colors.red)),
+                    onTap: () => Navigator.pop(context, null),
+                  ),
+                Expanded(
+                  child: list.isEmpty
+                      ? const Center(
+                          child: Text(
+                              'Aucun acheteur. Créez-en un depuis le menu.'))
+                      : ListView(
+                          children: list
+                              .map((c) => ListTile(
+                                    leading: const Icon(Icons.person),
+                                    title: Text(c.name),
+                                    subtitle: Text(
+                                        'Solde dû : ${fmtMoney(c.balance)}'),
+                                    onTap: () => Navigator.pop(context, c),
+                                  ))
+                              .toList(),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    setState(() {
+      _customer = picked;
+      if (picked == null) _onCredit = false;
+    });
+  }
+
   Future<void> _checkout() async {
     if (_cart.isEmpty) return;
+    if (_onCredit && _customer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Sélectionnez un acheteur pour vendre à crédit')));
+      return;
+    }
     try {
-      await _saleDao.checkout(_cart);
+      await _saleDao.checkout(
+        _cart,
+        customerId: _onCredit ? _customer?.id : null,
+        onCredit: _onCredit,
+      );
       if (!mounted) return;
+      final msg = _onCredit
+          ? 'Vente à crédit pour ${_customer!.name}: ${fmtMoney(_total)}'
+          : 'Vente enregistrée: ${fmtMoney(_total)}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Colors.green,
-          content: Text('Vente enregistrée: ${fmtMoney(_total)}')));
-      setState(() => _cart.clear());
+          backgroundColor: Colors.green, content: Text(msg)));
+      setState(() {
+        _cart.clear();
+        _customer = null;
+        _onCredit = false;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -216,6 +290,52 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
             ),
             child: Column(
               children: [
+                // Customer + credit
+                InkWell(
+                  onTap: _pickCustomer,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _customer == null
+                                ? 'Choisir un acheteur (optionnel)'
+                                : _customer!.name,
+                            style: TextStyle(
+                              fontWeight: _customer == null
+                                  ? FontWeight.normal
+                                  : FontWeight.bold,
+                              color: _customer == null
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_customer != null)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _onCredit,
+                    onChanged: (v) => setState(() => _onCredit = v ?? false),
+                    title: const Text('Vendre à crédit'),
+                    subtitle: const Text(
+                        'Le montant sera ajouté au solde de l’acheteur',
+                        style: TextStyle(fontSize: 11)),
+                  ),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -241,8 +361,10 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
                       flex: 2,
                       child: FilledButton.icon(
                         onPressed: _cart.isEmpty ? null : _checkout,
-                        icon: const Icon(Icons.payments),
-                        label: const Text('Encaisser'),
+                        icon: Icon(_onCredit
+                            ? Icons.receipt_long
+                            : Icons.payments),
+                        label: Text(_onCredit ? 'Créditer' : 'Encaisser'),
                       ),
                     ),
                   ],

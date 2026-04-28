@@ -39,6 +39,9 @@ dependencies:
   connectivity_plus: ^6.0.5
   crypto: ^3.0.5
 
+  # Image picker (camera / gallery) for product photos
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_test:

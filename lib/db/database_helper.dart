@@ -19,7 +19,7 @@ class DatabaseHelper {
     final path = p.join(dir.path, 'caisse_facile.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -131,7 +131,93 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX idx_sessions_dirty ON delivery_sessions(dirty);');
     await db.execute('CREATE INDEX idx_sales_dirty ON sales(dirty);');
 
+    await _createV4Tables(db);
     await _createDirtyTriggers(db);
+  }
+
+  Future<void> _createV4Tables(Database db) async {
+    // Customers (acheteurs / habitués)
+    await db.execute('''
+      CREATE TABLE customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        note TEXT,
+        balance REAL NOT NULL DEFAULT 0,
+        remote_id TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        dirty INTEGER NOT NULL DEFAULT 1,
+        deleted_at TEXT
+      );
+    ''');
+    // Credit ledger: + = sale on credit (customer owes), - = repayment.
+    await db.execute('''
+      CREATE TABLE customer_credits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        sale_id INTEGER,
+        amount REAL NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'CREDIT',
+        note TEXT,
+        date TEXT NOT NULL,
+        remote_id TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        dirty INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE SET NULL
+      );
+    ''');
+    // Suppliers
+    await db.execute('''
+      CREATE TABLE suppliers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        note TEXT,
+        remote_id TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        dirty INTEGER NOT NULL DEFAULT 1,
+        deleted_at TEXT
+      );
+    ''');
+    // Expenses (charges)
+    await db.execute('''
+      CREATE TABLE expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        amount REAL NOT NULL,
+        category TEXT,
+        supplier_id INTEGER,
+        note TEXT,
+        remote_id TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        dirty INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+      );
+    ''');
+    // Stock movements (journal)
+    await db.execute('''
+      CREATE TABLE stock_movements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        qty REAL NOT NULL,
+        kind TEXT NOT NULL,
+        source_type TEXT,
+        source_id INTEGER,
+        note TEXT,
+        date TEXT NOT NULL,
+        remote_id TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        dirty INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (product_id) REFERENCES products(id)
+      );
+    ''');
+
+    await db.execute('CREATE INDEX idx_credits_customer ON customer_credits(customer_id);');
+    await db.execute('CREATE INDEX idx_credits_date ON customer_credits(date);');
+    await db.execute('CREATE INDEX idx_expenses_date ON expenses(date);');
+    await db.execute('CREATE INDEX idx_movements_date ON stock_movements(date);');
+    await db.execute('CREATE INDEX idx_movements_product ON stock_movements(product_id);');
   }
 
   Future<void> _createDirtyTriggers(Database db) async {
@@ -142,7 +228,12 @@ class DatabaseHelper {
       'delivery_men',
       'delivery_sessions',
       'session_items',
-      'sales'
+      'sales',
+      'customers',
+      'customer_credits',
+      'suppliers',
+      'expenses',
+      'stock_movements',
     ]) {
       await db.execute('''
         CREATE TRIGGER IF NOT EXISTS trg_${t}_dirty
@@ -195,6 +286,9 @@ class DatabaseHelper {
     }
     if (oldVersion < 3) {
       await db.execute("ALTER TABLE products ADD COLUMN image_path TEXT");
+    }
+    if (oldVersion < 4) {
+      await _createV4Tables(db);
     }
   }
 

@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../db/product_dao.dart';
 import '../models/product.dart';
 import '../utils/formatters.dart';
+import '../widgets/product_thumb.dart';
 
 class ProductFormScreen extends StatefulWidget {
   final Product? product;
@@ -25,6 +30,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late TextEditingController _stock;
   late TextEditingController _alert;
   DateTime? _expiry;
+  String? _imagePath;
 
   @override
   void initState() {
@@ -38,6 +44,65 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _stock = TextEditingController(text: p?.stockQty.toString() ?? '0');
     _alert = TextEditingController(text: p?.alertThreshold.toString() ?? '0');
     _expiry = p?.expiryDate;
+    _imagePath = p?.imagePath;
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final x = await picker.pickImage(
+          source: source, maxWidth: 800, maxHeight: 800, imageQuality: 85);
+      if (x == null) return;
+      // Copy into app docs dir so it survives across app updates.
+      final dir = await getApplicationDocumentsDirectory();
+      final imgsDir = Directory(p.join(dir.path, 'product_images'));
+      if (!imgsDir.existsSync()) imgsDir.createSync(recursive: true);
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final dest = p.join(imgsDir.path, 'p_$ts.jpg');
+      await File(x.path).copy(dest);
+      if (!mounted) return;
+      setState(() => _imagePath = dest);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image impossible: $e')));
+    }
+  }
+
+  void _showImageMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Prendre une photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                }),
+            ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choisir depuis la galerie'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                }),
+            if (_imagePath != null)
+              ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text('Supprimer la photo',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _imagePath = null);
+                  }),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -64,6 +129,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       stockQty: double.tryParse(_stock.text) ?? 0,
       alertThreshold: double.tryParse(_alert.text) ?? 0,
       expiryDate: _expiry,
+      imagePath: _imagePath,
     );
     try {
       if (product.id == null) {
@@ -120,6 +186,35 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ===== Image =====
+            Center(
+              child: GestureDetector(
+                onTap: _showImageMenu,
+                child: Stack(
+                  children: [
+                    ProductThumb(
+                        imagePath: _imagePath,
+                        name: _name.text.isEmpty ? '?' : _name.text,
+                        size: 120,
+                        radius: 16),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _barcode,
               decoration: const InputDecoration(

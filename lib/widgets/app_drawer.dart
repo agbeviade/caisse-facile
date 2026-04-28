@@ -5,10 +5,14 @@ import '../screens/alerts_screen.dart';
 import '../screens/auth_screen.dart';
 import '../screens/catalog_screen.dart';
 import '../screens/counter_sale_screen.dart';
+import '../screens/customers_screen.dart';
 import '../screens/delivery_men_screen.dart';
 import '../screens/delivery_sessions_screen.dart';
+import '../screens/expenses_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/reports_screen.dart';
+import '../screens/stock_movements_screen.dart';
+import '../screens/suppliers_screen.dart';
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 
@@ -175,13 +179,13 @@ class _AppDrawerState extends State<AppDrawer> {
                   _item(Icons.inventory_2, 'Produits',
                       onTap: () => _go(const CatalogScreen())),
                   _item(Icons.swap_vert, 'Mouvements de stock',
-                      onTap: () => _comingSoon('Mouvements de stock')),
+                      onTap: () => _go(const StockMovementsScreen())),
                   _item(Icons.payments, 'Charges',
-                      onTap: () => _comingSoon('Charges')),
+                      onTap: () => _go(const ExpensesScreen())),
                   _item(Icons.handshake, 'Fournisseurs',
-                      onTap: () => _comingSoon('Fournisseurs')),
+                      onTap: () => _go(const SuppliersScreen())),
                   _item(Icons.group, 'Acheteurs (crédits)',
-                      onTap: () => _comingSoon('Acheteurs')),
+                      onTap: () => _go(const CustomersScreen())),
                   _item(Icons.directions_bike, 'Équipe livreurs',
                       onTap: () => _go(const DeliveryMenScreen())),
                   const Divider(),

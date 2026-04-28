@@ -26,7 +26,13 @@ class CartItem {
 class SaleDao {
   Future<Database> get _db async => DatabaseHelper.instance.database;
 
-  Future<int> checkout(List<CartItem> items) async {
+  /// Checkout. If [customerId] is provided and [onCredit] is true, records a
+  /// credit ledger entry and increases the customer's balance by [total].
+  Future<int> checkout(
+    List<CartItem> items, {
+    int? customerId,
+    bool onCredit = false,
+  }) async {
     if (items.isEmpty) {
       throw Exception('Panier vide');
     }
@@ -55,8 +61,9 @@ class SaleDao {
         profit += it.profit;
       }
 
+      final now = DateTime.now().toIso8601String();
       final saleId = await txn.insert('sales', {
-        'date': DateTime.now().toIso8601String(),
+        'date': now,
         'total': total,
         'profit': profit,
         'source': 'COUNTER',
@@ -74,6 +81,31 @@ class SaleDao {
         await txn.rawUpdate(
             'UPDATE products SET stock_qty = stock_qty - ? WHERE id = ?',
             [it.qty, it.productId]);
+        // Stock movement journal entry
+        await txn.insert('stock_movements', {
+          'product_id': it.productId,
+          'qty': -it.qty,
+          'kind': 'OUT',
+          'source_type': 'SALE',
+          'source_id': saleId,
+          'note': 'Vente comptoir',
+          'date': now,
+        });
+      }
+
+      // Credit ledger if sale on credit
+      if (onCredit && customerId != null && total > 0) {
+        await txn.insert('customer_credits', {
+          'customer_id': customerId,
+          'sale_id': saleId,
+          'amount': total,
+          'kind': 'CREDIT',
+          'note': 'Vente à crédit',
+          'date': now,
+        });
+        await txn.rawUpdate(
+            'UPDATE customers SET balance = balance + ? WHERE id = ?',
+            [total, customerId]);
       }
 
       return saleId;
