@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../db/customer_dao.dart';
 import '../db/product_dao.dart';
 import '../db/sale_dao.dart';
 import '../models/customer.dart';
 import '../utils/formatters.dart';
 import '../widgets/barcode_scanner_screen.dart';
+import '../widgets/success_overlay.dart';
 
 class CounterSaleScreen extends StatefulWidget {
   const CounterSaleScreen({super.key});
@@ -18,8 +20,90 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
   final _saleDao = SaleDao();
   final _customerDao = CustomerDao();
   final List<CartItem> _cart = [];
+  final _cartListKey = GlobalKey<AnimatedListState>();
   Customer? _customer;
   bool _onCredit = false;
+
+  /// Add a product to the cart with animation. If already present, just bump qty.
+  void _addProduct(CartItem newItem) {
+    final idx = _cart.indexWhere((c) => c.productId == newItem.productId);
+    HapticFeedback.selectionClick();
+    if (idx >= 0) {
+      setState(() => _cart[idx].qty += newItem.qty);
+    } else {
+      _cart.insert(0, newItem);
+      _cartListKey.currentState?.insertItem(0,
+          duration: const Duration(milliseconds: 320));
+    }
+  }
+
+  void _removeAt(int i) {
+    final removed = _cart[i];
+    _cart.removeAt(i);
+    HapticFeedback.selectionClick();
+    _cartListKey.currentState?.removeItem(
+      i,
+      (ctx, anim) => SizeTransition(
+        sizeFactor: anim,
+        child: FadeTransition(
+          opacity: anim,
+          child: _cartTile(removed, -1, interactive: false),
+        ),
+      ),
+      duration: const Duration(milliseconds: 240),
+    );
+    if (_cart.isEmpty) setState(() {});
+  }
+
+  /// Animated wipe of all cart items.
+  void _clearCart() {
+    while (_cart.isNotEmpty) {
+      final removed = _cart.removeLast();
+      _cartListKey.currentState?.removeItem(
+        _cart.length,
+        (ctx, anim) => SizeTransition(
+          sizeFactor: anim,
+          child: FadeTransition(
+              opacity: anim,
+              child: _cartTile(removed, -1, interactive: false)),
+        ),
+        duration: const Duration(milliseconds: 200),
+      );
+    }
+    setState(() {});
+  }
+
+  Widget _cartTile(CartItem c, int i, {bool interactive = true}) {
+    return ListTile(
+      title: Text(c.name),
+      subtitle: Text('${fmtQty(c.qty)} × ${fmtMoney(c.salePrice)}'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline),
+            onPressed: !interactive
+                ? null
+                : () {
+                    if (c.qty > 1) {
+                      setState(() => c.qty -= 1);
+                    } else {
+                      _removeAt(i);
+                    }
+                  },
+          ),
+          Text(fmtMoney(c.total),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed:
+                !interactive ? null : () => setState(() => c.qty += 1),
+          ),
+        ],
+      ),
+    );
+  }
 
   double get _total => _cart.fold(0, (s, e) => s + e.total);
 
@@ -33,21 +117,14 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
           const SnackBar(content: Text('Produit inconnu — créez-le d\'abord')));
       return;
     }
-    setState(() {
-      final idx = _cart.indexWhere((c) => c.productId == p.id);
-      if (idx >= 0) {
-        _cart[idx].qty += 1;
-      } else {
-        _cart.add(CartItem(
-          productId: p.id!,
-          name: p.name,
-          barcode: p.barcode,
-          qty: 1,
-          salePrice: p.salePrice,
-          purchasePrice: p.purchasePrice,
-        ));
-      }
-    });
+    _addProduct(CartItem(
+      productId: p.id!,
+      name: p.name,
+      barcode: p.barcode,
+      qty: 1,
+      salePrice: p.salePrice,
+      purchasePrice: p.purchasePrice,
+    ));
   }
 
   Future<void> _searchAdd() async {
@@ -111,21 +188,14 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
     if (selected == null) return;
     final p = await _productDao.findById(selected);
     if (p == null || !mounted) return;
-    setState(() {
-      final idx = _cart.indexWhere((c) => c.productId == p.id);
-      if (idx >= 0) {
-        _cart[idx].qty += 1;
-      } else {
-        _cart.add(CartItem(
-          productId: p.id!,
-          name: p.name,
-          barcode: p.barcode,
-          qty: 1,
-          salePrice: p.salePrice,
-          purchasePrice: p.purchasePrice,
-        ));
-      }
-    });
+    _addProduct(CartItem(
+      productId: p.id!,
+      name: p.name,
+      barcode: p.barcode,
+      qty: 1,
+      salePrice: p.salePrice,
+      purchasePrice: p.purchasePrice,
+    ));
   }
 
   Future<void> _pickCustomer() async {
@@ -197,15 +267,16 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
       );
       if (!mounted) return;
       final msg = _onCredit
-          ? 'Vente à crédit pour ${_customer!.name}: ${fmtMoney(_total)}'
-          : 'Vente enregistrée: ${fmtMoney(_total)}';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Colors.green, content: Text(msg)));
+          ? 'Crédité à ${_customer!.name} · ${fmtMoney(_total)}'
+          : 'Vente encaissée · ${fmtMoney(_total)}';
+      HapticFeedback.lightImpact();
+      _clearCart();
       setState(() {
-        _cart.clear();
         _customer = null;
         _onCredit = false;
       });
+      // Lottie checkmark, auto-dismisses after 1.5s
+      await showSuccessOverlay(context, message: msg);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -224,61 +295,56 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
           if (_cart.isNotEmpty)
             IconButton(
                 icon: const Icon(Icons.delete_sweep),
-                onPressed: () => setState(() => _cart.clear())),
+                onPressed: _clearCart),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: _cart.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.shopping_cart, size: 80, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            "Scannez un article pour commencer",
-                            style: TextStyle(fontSize: 16),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+            child: Stack(
+              children: [
+                AnimatedList(
+                  key: _cartListKey,
+                  initialItemCount: _cart.length,
+                  itemBuilder: (ctx, i, anim) {
+                    if (i >= _cart.length) return const SizedBox.shrink();
+                    return SizeTransition(
+                      sizeFactor: anim,
+                      child: FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                                  begin: const Offset(1, 0),
+                                  end: Offset.zero)
+                              .animate(CurvedAnimation(
+                                  parent: anim, curve: Curves.easeOutCubic)),
+                          child: _cartTile(_cart[i], i),
+                        ),
                       ),
-                    ),
-                  )
-                : ListView.separated(
-                    itemCount: _cart.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, i) {
-                      final c = _cart[i];
-                      return ListTile(
-                        title: Text(c.name),
-                        subtitle: Text(
-                            '${fmtQty(c.qty)} × ${fmtMoney(c.salePrice)}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: () => setState(() {
-                                      c.qty = (c.qty - 1).clamp(0, 99999);
-                                      if (c.qty <= 0) _cart.removeAt(i);
-                                    })),
-                            Text(fmtMoney(c.total),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
-                            IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () =>
-                                    setState(() => c.qty += 1)),
+                    );
+                  },
+                ),
+                if (_cart.isEmpty)
+                  IgnorePointer(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.shopping_cart_outlined,
+                                size: 72, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text("Scannez un article pour commencer",
+                                style: TextStyle(fontSize: 15),
+                                textAlign: TextAlign.center),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(16),
