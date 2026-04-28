@@ -15,6 +15,7 @@ import 'delivery_sessions_screen.dart';
 import 'expenses_screen.dart';
 import 'reports_screen.dart';
 import 'stock_movements_screen.dart';
+import '../widgets/fluent.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,36 +59,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _refresh();
   }
 
-  Widget _tile(IconData icon, String label, VoidCallback onTap,
+  Widget _tile(IconData icon, String label, String subtitle, VoidCallback onTap,
       {Color? color, String? badge}) {
-    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Stack(
             children: [
               Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: (color ?? scheme.primary).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child:
-                        Icon(icon, size: 24, color: color ?? scheme.primary),
-                  ),
+                  IconBadge(icon: icon, color: color, size: 38, iconSize: 20),
                   const Spacer(),
                   Text(label,
                       style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                          fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant)),
                 ],
               ),
               if (badge != null && badge.isNotEmpty)
@@ -206,16 +205,22 @@ class _HomeScreenState extends State<HomeScreen> {
               childAspectRatio: 1.15,
               children: [
                 _tile(Icons.point_of_sale, 'Vente comptoir',
+                    'Encaisser sur place',
                     () => _push(const CounterSaleScreen())),
-                _tile(Icons.local_shipping, 'Tournées livreurs',
+                _tile(Icons.local_shipping, 'Tournées',
+                    'Sortie / retour livreurs',
                     () => _push(const DeliverySessionsScreen())),
                 _tile(Icons.inventory_2, 'Catalogue',
+                    'Produits & stock',
                     () => _push(const CatalogScreen())),
                 _tile(Icons.directions_bike, 'Équipe',
+                    'Livreurs',
                     () => _push(const DeliveryMenScreen())),
                 _tile(Icons.bar_chart, 'Tableau de bord',
+                    'CA, bénéfices, top ventes',
                     () => _push(const ReportsScreen())),
                 _tile(Icons.warning_amber, 'Alertes',
+                    'Stock bas, périmés',
                     () => _push(const AlertsScreen()),
                     color: _alerts > 0 ? Colors.orange : null,
                     badge: _alerts > 0 ? '$_alerts' : null),

@@ -19,8 +19,8 @@ class AppTheme {
     return base.copyWith(
       colorScheme: scheme,
       scaffoldBackgroundColor: brightness == Brightness.light
-          ? const Color(0xFFF7F9F8)
-          : const Color(0xFF0F1311),
+          ? const Color(0xFFF6F8F7)
+          : const Color(0xFF0B0E0C),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
         titleLarge: GoogleFonts.inter(
             textStyle: base.textTheme.titleLarge,
@@ -72,29 +72,47 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: scheme.surface,
+        color: brightness == Brightness.light
+            ? Colors.white
+            : const Color(0xFF161A18),
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+              color: scheme.outlineVariant.withOpacity(
+                  brightness == Brightness.light ? 0.35 : 0.18)),
         ),
+      ),
+      listTileTheme: ListTileThemeData(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20)),
+        side: BorderSide(color: scheme.outlineVariant.withOpacity(0.6)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: brightness == Brightness.light
             ? Colors.white
-            : scheme.surface,
+            : const Color(0xFF161A18),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide:
-              BorderSide(color: scheme.outlineVariant.withOpacity(0.6)),
+              BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide:
-              BorderSide(color: scheme.outlineVariant.withOpacity(0.6)),
+              BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.primary, width: 1.6),
         ),
       ),
