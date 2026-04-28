@@ -1,4 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../theme/app_theme.dart';
+
+/// Monospace text for monetary amounts, quantities and other numeric values.
+/// Uses Roboto Mono so columns of numbers align perfectly across rows.
+class MoneyText extends StatelessWidget {
+  final String text;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final Color? color;
+  final TextAlign? textAlign;
+
+  const MoneyText(
+    this.text, {
+    super.key,
+    this.fontSize = 14,
+    this.fontWeight = FontWeight.w600,
+    this.color,
+    this.textAlign,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: textAlign,
+      style: GoogleFonts.robotoMono(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: -0.2,
+      ),
+    );
+  }
+}
+
+/// Brand colors exposed as a convenient `BuildContext` extension so screens
+/// don't have to import `AppTheme` directly.
+extension BrandColors on BuildContext {
+  Color get warningColor => AppTheme.amber;
+  Color get dangerColor => AppTheme.danger;
+  Color get navyColor => AppTheme.navy;
+}
 
 /// Small colored square holding an icon — used everywhere as a "feature badge".
 /// Matches the Souvenir AI / shadcn aesthetic: 40x40 rounded container with a

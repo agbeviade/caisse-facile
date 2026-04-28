@@ -119,6 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final shopName = AuthService.instance.shopName;
     return Scaffold(
       drawer: const AppDrawer(),
+      floatingActionButton: SizedBox(
+        width: 68,
+        height: 68,
+        child: FloatingActionButton(
+          tooltip: 'Scanner & vendre',
+          onPressed: () => _push(const CounterSaleScreen()),
+          child: const Icon(Icons.qr_code_scanner, size: 32),
+        ),
+      ),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             _TodayHeroCard(
                 total: _todayTotal,
@@ -302,12 +311,10 @@ class _TodayHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(fmtMoney(total),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5)),
+          MoneyText(fmtMoney(total),
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              color: Colors.white),
           const SizedBox(height: 2),
           Text(
               count == 0

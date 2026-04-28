@@ -3,8 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Centralized theme builder. Uses Inter (Google Fonts) and Material 3.
+/// Palette “Clean & Trust”:
+///  - Emerald  #2ECC71 → primary (growth, fresh produce, success)
+///  - Navy     #2C3E50 → AppBar / strong text (trust, money management)
+///  - Off-white #F8F9FA → scaffold background (less aggressive than pure white)
+///  - Amber    #F1C40F → stock-low / near-expiry warnings
+///  - Red      #E74C3C → critical errors / out of stock
 class AppTheme {
-  static const seed = Color(0xFF0E7C3A);
+  static const seed = Color(0xFF2ECC71);
+  static const navy = Color(0xFF2C3E50);
+  static const navySoft = Color(0xFF34495E);
+  static const offWhite = Color(0xFFF8F9FA);
+  static const amber = Color(0xFFF1C40F);
+  static const danger = Color(0xFFE74C3C);
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
@@ -13,15 +24,15 @@ class AppTheme {
     final scheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: brightness,
+      error: danger,
     );
     final base = brightness == Brightness.light
         ? ThemeData.light(useMaterial3: true)
         : ThemeData.dark(useMaterial3: true);
     return base.copyWith(
       colorScheme: scheme,
-      scaffoldBackgroundColor: brightness == Brightness.light
-          ? const Color(0xFFF6F8F7)
-          : const Color(0xFF0B0E0C),
+      scaffoldBackgroundColor:
+          brightness == Brightness.light ? offWhite : const Color(0xFF0B0E0C),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
         titleLarge: GoogleFonts.inter(
             textStyle: base.textTheme.titleLarge,
@@ -35,16 +46,26 @@ class AppTheme {
             letterSpacing: 0.2),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
+        backgroundColor: brightness == Brightness.light
+            ? navy
+            : const Color(0xFF111418),
+        foregroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 2,
         centerTitle: false,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actionsIconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: GoogleFonts.inter(
-          color: scheme.onSurface,
-          fontSize: 18,
+          color: Colors.white,
+          fontSize: 19,
           fontWeight: FontWeight.w700,
         ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 6,
+        shape: const StadiumBorder(),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -72,16 +93,15 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.08),
+        surfaceTintColor: Colors.transparent,
         color: brightness == Brightness.light
             ? Colors.white
             : const Color(0xFF161A18),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-              color: scheme.outlineVariant.withOpacity(
-                  brightness == Brightness.light ? 0.35 : 0.18)),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       chipTheme: ChipThemeData(
