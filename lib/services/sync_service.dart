@@ -47,11 +47,25 @@ class SyncService {
       await _push('delivery_sessions', shopId, _sessionLocalToRemote,
           enrich: _enrichSession);
       await _push('sales', shopId, _saleLocalToRemote, enrich: _enrichSale);
+      // New modules (v2)
+      await _push('customers', shopId, _customerLocalToRemote);
+      await _push('suppliers', shopId, _supplierLocalToRemote);
+      await _push('expenses', shopId, _expenseLocalToRemote,
+          enrich: _enrichExpense);
+      await _push('stock_movements', shopId, _movementLocalToRemote,
+          enrich: _enrichMovement);
+      await _push('customer_credits', shopId, _creditLocalToRemote,
+          enrich: _enrichCredit);
 
       await _pull('products', shopId, _productRemoteToLocal);
       await _pull('delivery_men', shopId, _manRemoteToLocal);
       await _pull('delivery_sessions', shopId, _sessionRemoteToLocal);
       await _pull('sales', shopId, _saleRemoteToLocal);
+      await _pull('customers', shopId, _customerRemoteToLocal);
+      await _pull('suppliers', shopId, _supplierRemoteToLocal);
+      await _pull('expenses', shopId, _expenseRemoteToLocal);
+      await _pull('stock_movements', shopId, _movementRemoteToLocal);
+      await _pull('customer_credits', shopId, _creditRemoteToLocal);
 
       return 'Synchronisé';
     } finally {
@@ -335,6 +349,283 @@ class SyncService {
       await db.insert('sales', values);
     } else {
       await db.update('sales', values,
+          where: 'id = ?', whereArgs: [existing.first['id']]);
+    }
+  }
+
+  // ============ V2 MAPPERS: customers / suppliers / expenses /
+  //               stock_movements / customer_credits ============
+
+  // ---- customers ----
+  Map<String, dynamic> _customerLocalToRemote(
+      Map<String, dynamic> r, String shopId) {
+    return {
+      if ((r['remote_id'] as String?) != null) 'id': r['remote_id'],
+      'shop_id': shopId,
+      'name': r['name'],
+      'phone': r['phone'],
+      'note': r['note'],
+      'balance': r['balance'],
+      'deleted_at': r['deleted_at'],
+    };
+  }
+
+  Future<void> _customerRemoteToLocal(
+      Database db, Map<String, dynamic> r) async {
+    final existing = await db.query('customers',
+        where: 'remote_id = ?', whereArgs: [r['id']], limit: 1);
+    final values = {
+      'name': r['name'],
+      'phone': r['phone'],
+      'note': r['note'],
+      'balance': r['balance'],
+      'deleted_at': r['deleted_at'],
+      'remote_id': r['id'],
+      'updated_at': r['updated_at'],
+      'dirty': 0,
+    };
+    if (existing.isEmpty) {
+      await db.insert('customers', values);
+    } else {
+      await db.update('customers', values,
+          where: 'id = ?', whereArgs: [existing.first['id']]);
+    }
+  }
+
+  // ---- suppliers ----
+  Map<String, dynamic> _supplierLocalToRemote(
+      Map<String, dynamic> r, String shopId) {
+    return {
+      if ((r['remote_id'] as String?) != null) 'id': r['remote_id'],
+      'shop_id': shopId,
+      'name': r['name'],
+      'phone': r['phone'],
+      'note': r['note'],
+      'deleted_at': r['deleted_at'],
+    };
+  }
+
+  Future<void> _supplierRemoteToLocal(
+      Database db, Map<String, dynamic> r) async {
+    final existing = await db.query('suppliers',
+        where: 'remote_id = ?', whereArgs: [r['id']], limit: 1);
+    final values = {
+      'name': r['name'],
+      'phone': r['phone'],
+      'note': r['note'],
+      'deleted_at': r['deleted_at'],
+      'remote_id': r['id'],
+      'updated_at': r['updated_at'],
+      'dirty': 0,
+    };
+    if (existing.isEmpty) {
+      await db.insert('suppliers', values);
+    } else {
+      await db.update('suppliers', values,
+          where: 'id = ?', whereArgs: [existing.first['id']]);
+    }
+  }
+
+  // ---- expenses (FK: supplier_id) ----
+  Future<Map<String, dynamic>?> _enrichExpense(
+      Database db, Map<String, dynamic> row) async {
+    String? supplierRemote;
+    if (row['supplier_id'] != null) {
+      final s = await db.query('suppliers',
+          columns: ['remote_id'],
+          where: 'id = ?',
+          whereArgs: [row['supplier_id']],
+          limit: 1);
+      // If supplier exists locally but isn't synced yet, defer this expense.
+      if (s.isNotEmpty && (s.first['remote_id'] as String?) == null) {
+        return null;
+      }
+      supplierRemote = s.isEmpty ? null : s.first['remote_id'] as String?;
+    }
+    return {...row, '_remote_supplier_id': supplierRemote};
+  }
+
+  Map<String, dynamic> _expenseLocalToRemote(
+      Map<String, dynamic> r, String shopId) {
+    return {
+      if ((r['remote_id'] as String?) != null) 'id': r['remote_id'],
+      'shop_id': shopId,
+      'date': r['date'],
+      'amount': r['amount'],
+      'category': r['category'],
+      'supplier_id': r['_remote_supplier_id'],
+      'note': r['note'],
+    };
+  }
+
+  Future<void> _expenseRemoteToLocal(
+      Database db, Map<String, dynamic> r) async {
+    int? localSupplierId;
+    if (r['supplier_id'] != null) {
+      final s = await db.query('suppliers',
+          columns: ['id'],
+          where: 'remote_id = ?',
+          whereArgs: [r['supplier_id']],
+          limit: 1);
+      if (s.isNotEmpty) localSupplierId = s.first['id'] as int?;
+    }
+    final existing = await db.query('expenses',
+        where: 'remote_id = ?', whereArgs: [r['id']], limit: 1);
+    final values = {
+      'date': r['date'],
+      'amount': r['amount'],
+      'category': r['category'],
+      'supplier_id': localSupplierId,
+      'note': r['note'],
+      'remote_id': r['id'],
+      'updated_at': r['updated_at'],
+      'dirty': 0,
+    };
+    if (existing.isEmpty) {
+      await db.insert('expenses', values);
+    } else {
+      await db.update('expenses', values,
+          where: 'id = ?', whereArgs: [existing.first['id']]);
+    }
+  }
+
+  // ---- stock_movements (FK: product_id) ----
+  Future<Map<String, dynamic>?> _enrichMovement(
+      Database db, Map<String, dynamic> row) async {
+    final p = await db.query('products',
+        columns: ['remote_id'],
+        where: 'id = ?',
+        whereArgs: [row['product_id']],
+        limit: 1);
+    if (p.isEmpty) return null;
+    final remoteId = p.first['remote_id'] as String?;
+    if (remoteId == null) return null; // wait for product to be pushed first
+    return {...row, '_remote_product_id': remoteId};
+  }
+
+  Map<String, dynamic> _movementLocalToRemote(
+      Map<String, dynamic> r, String shopId) {
+    return {
+      if ((r['remote_id'] as String?) != null) 'id': r['remote_id'],
+      'shop_id': shopId,
+      'product_id': r['_remote_product_id'],
+      'qty': r['qty'],
+      'kind': r['kind'],
+      'source_type': r['source_type'],
+      // source_id is local-only; skipped on push (would not match remote uuids)
+      'note': r['note'],
+      'date': r['date'],
+    };
+  }
+
+  Future<void> _movementRemoteToLocal(
+      Database db, Map<String, dynamic> r) async {
+    final p = await db.query('products',
+        columns: ['id'],
+        where: 'remote_id = ?',
+        whereArgs: [r['product_id']],
+        limit: 1);
+    if (p.isEmpty) return; // product not synced locally yet; will retry
+    final existing = await db.query('stock_movements',
+        where: 'remote_id = ?', whereArgs: [r['id']], limit: 1);
+    final values = {
+      'product_id': p.first['id'],
+      'qty': r['qty'],
+      'kind': r['kind'],
+      'source_type': r['source_type'],
+      'source_id': null,
+      'note': r['note'],
+      'date': r['date'],
+      'remote_id': r['id'],
+      'updated_at': r['updated_at'],
+      'dirty': 0,
+    };
+    if (existing.isEmpty) {
+      await db.insert('stock_movements', values);
+    } else {
+      await db.update('stock_movements', values,
+          where: 'id = ?', whereArgs: [existing.first['id']]);
+    }
+  }
+
+  // ---- customer_credits (FK: customer_id, optional sale_id) ----
+  Future<Map<String, dynamic>?> _enrichCredit(
+      Database db, Map<String, dynamic> row) async {
+    final c = await db.query('customers',
+        columns: ['remote_id'],
+        where: 'id = ?',
+        whereArgs: [row['customer_id']],
+        limit: 1);
+    if (c.isEmpty) return null;
+    final customerRemote = c.first['remote_id'] as String?;
+    if (customerRemote == null) return null;
+    String? saleRemote;
+    if (row['sale_id'] != null) {
+      final s = await db.query('sales',
+          columns: ['remote_id'],
+          where: 'id = ?',
+          whereArgs: [row['sale_id']],
+          limit: 1);
+      if (s.isNotEmpty && (s.first['remote_id'] as String?) == null) {
+        return null; // wait for the sale to be synced first
+      }
+      saleRemote = s.isEmpty ? null : s.first['remote_id'] as String?;
+    }
+    return {
+      ...row,
+      '_remote_customer_id': customerRemote,
+      '_remote_sale_id': saleRemote,
+    };
+  }
+
+  Map<String, dynamic> _creditLocalToRemote(
+      Map<String, dynamic> r, String shopId) {
+    return {
+      if ((r['remote_id'] as String?) != null) 'id': r['remote_id'],
+      'shop_id': shopId,
+      'customer_id': r['_remote_customer_id'],
+      'sale_id': r['_remote_sale_id'],
+      'amount': r['amount'],
+      'kind': r['kind'],
+      'note': r['note'],
+      'date': r['date'],
+    };
+  }
+
+  Future<void> _creditRemoteToLocal(
+      Database db, Map<String, dynamic> r) async {
+    final c = await db.query('customers',
+        columns: ['id'],
+        where: 'remote_id = ?',
+        whereArgs: [r['customer_id']],
+        limit: 1);
+    if (c.isEmpty) return; // customer not synced locally yet
+    int? localSaleId;
+    if (r['sale_id'] != null) {
+      final s = await db.query('sales',
+          columns: ['id'],
+          where: 'remote_id = ?',
+          whereArgs: [r['sale_id']],
+          limit: 1);
+      if (s.isNotEmpty) localSaleId = s.first['id'] as int?;
+    }
+    final existing = await db.query('customer_credits',
+        where: 'remote_id = ?', whereArgs: [r['id']], limit: 1);
+    final values = {
+      'customer_id': c.first['id'],
+      'sale_id': localSaleId,
+      'amount': r['amount'],
+      'kind': r['kind'],
+      'note': r['note'],
+      'date': r['date'],
+      'remote_id': r['id'],
+      'updated_at': r['updated_at'],
+      'dirty': 0,
+    };
+    if (existing.isEmpty) {
+      await db.insert('customer_credits', values);
+    } else {
+      await db.update('customer_credits', values,
           where: 'id = ?', whereArgs: [existing.first['id']]);
     }
   }
