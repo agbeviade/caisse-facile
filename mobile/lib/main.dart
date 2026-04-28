@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/env.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/auth_service.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
@@ -40,10 +41,42 @@ class CaisseFacileApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: mode,
-          home: Env.hasSupabase ? const _AuthGate() : const HomeScreen(),
+          home: const _OnboardingGate(),
         );
       },
     );
+  }
+}
+
+/// Shows onboarding on first launch, then delegates to the auth/home flow.
+class _OnboardingGate extends StatefulWidget {
+  const _OnboardingGate();
+  @override
+  State<_OnboardingGate> createState() => _OnboardingGateState();
+}
+
+class _OnboardingGateState extends State<_OnboardingGate> {
+  bool? _onboardingDone;
+
+  @override
+  void initState() {
+    super.initState();
+    OnboardingScreen.isDone().then((v) {
+      if (mounted) setState(() => _onboardingDone = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_onboardingDone == null) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+    if (!_onboardingDone!) {
+      return OnboardingScreen(
+        onDone: () => setState(() => _onboardingDone = true),
+      );
+    }
+    return Env.hasSupabase ? const _AuthGate() : const HomeScreen();
   }
 }
 
