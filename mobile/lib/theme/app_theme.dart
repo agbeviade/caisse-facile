@@ -67,6 +67,24 @@ class AppTheme {
         elevation: 6,
         shape: const StadiumBorder(),
       ),
+      // Explicit drawer theme. Without this, M3 sometimes renders the panel
+      // with a translucent surface tint that blends with the scrim and makes
+      // the menu look invisible.
+      drawerTheme: DrawerThemeData(
+        backgroundColor: brightness == Brightness.light
+            ? Colors.white
+            : const Color(0xFF161A18),
+        surfaceTintColor: Colors.transparent,
+        elevation: 16,
+        shadowColor: Colors.black.withOpacity(0.3),
+        width: 296,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(54),
