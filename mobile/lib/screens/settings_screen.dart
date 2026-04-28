@@ -1,9 +1,23 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/export_service.dart';
 import '../services/theme_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _runExport(
+      BuildContext context, Future<void> Function() task, String label) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(content: Text('Export $label…')));
+    try {
+      await task();
+    } catch (e) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(SnackBar(
+          backgroundColor: Colors.red, content: Text('Échec : $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +71,33 @@ class SettingsScreen extends StatelessWidget {
                 ],
               );
             },
+          ),
+          const Divider(),
+          _section('Export des données'),
+          ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('Exporter les produits (CSV)'),
+            subtitle: const Text('Catalogue complet pour Excel / Sheets'),
+            trailing: const Icon(Icons.share_outlined),
+            onTap: () => _runExport(context,
+                ExportService.instance.exportProductsCsv, 'produits'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.point_of_sale_outlined),
+            title: const Text('Exporter les ventes (CSV)'),
+            subtitle: const Text('Toutes les ventes avec total et bénéfice'),
+            trailing: const Icon(Icons.share_outlined),
+            onTap: () => _runExport(
+                context, ExportService.instance.exportSalesCsv, 'ventes'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.list_alt_outlined),
+            title: const Text('Exporter les lignes de vente (CSV)'),
+            subtitle:
+                const Text('Détail produit par produit pour analyse fine'),
+            trailing: const Icon(Icons.share_outlined),
+            onTap: () => _runExport(context,
+                ExportService.instance.exportSaleItemsCsv, 'lignes'),
           ),
           const Divider(),
           _section('À propos'),

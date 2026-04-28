@@ -20,19 +20,33 @@ class ProductDao {
     return db.delete('products', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Product>> all({String? search}) async {
+  Future<List<Product>> all({String? search, String? category}) async {
     final db = await _db;
+    final clauses = <String>[];
+    final args = <Object?>[];
+    if (search != null && search.isNotEmpty) {
+      clauses.add('(name LIKE ? OR barcode LIKE ?)');
+      args.addAll(['%$search%', '%$search%']);
+    }
+    if (category != null && category.isNotEmpty) {
+      clauses.add('category = ?');
+      args.add(category);
+    }
     final rows = await db.query(
       'products',
-      where: search == null || search.isEmpty
-          ? null
-          : 'name LIKE ? OR barcode LIKE ?',
-      whereArgs: search == null || search.isEmpty
-          ? null
-          : ['%$search%', '%$search%'],
+      where: clauses.isEmpty ? null : clauses.join(' AND '),
+      whereArgs: clauses.isEmpty ? null : args,
       orderBy: 'name COLLATE NOCASE ASC',
     );
     return rows.map(Product.fromMap).toList();
+  }
+
+  /// All distinct non-empty categories used in the products table.
+  Future<List<String>> categories() async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+        "SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category COLLATE NOCASE");
+    return rows.map((r) => r['category'] as String).toList();
   }
 
   Future<Product?> findByBarcode(String barcode) async {

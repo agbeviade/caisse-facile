@@ -26,6 +26,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
   final _dao = ProductDao();
   final _searchCtrl = TextEditingController();
   List<Product> _products = [];
+  List<String> _categories = [];
+  String? _selectedCategory;
   _ViewMode _mode = _activeViewMode;
   bool _loading = true;
 
@@ -36,10 +38,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Future<void> _load() async {
-    final p = await _dao.all(search: _searchCtrl.text.trim());
+    final p = await _dao.all(
+        search: _searchCtrl.text.trim(), category: _selectedCategory);
+    final cats = await _dao.categories();
     if (!mounted) return;
     setState(() {
       _products = p;
+      _categories = cats;
       _loading = false;
     });
   }
@@ -139,6 +144,39 @@ class _CatalogScreenState extends State<CatalogScreen> {
               onChanged: (_) => _load(),
             ),
           ),
+          if (_categories.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FilterChip(
+                      label: const Text('Toutes'),
+                      selected: _selectedCategory == null,
+                      onSelected: (_) {
+                        setState(() => _selectedCategory = null);
+                        _load();
+                      },
+                    ),
+                  ),
+                  ..._categories.map((c) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FilterChip(
+                          label: Text(c),
+                          selected: _selectedCategory == c,
+                          onSelected: (_) {
+                            setState(() => _selectedCategory =
+                                _selectedCategory == c ? null : c);
+                            _load();
+                          },
+                        ),
+                      )),
+                ],
+              ),
+            ),
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 240),

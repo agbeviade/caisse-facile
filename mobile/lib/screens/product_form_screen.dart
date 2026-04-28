@@ -235,10 +235,37 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   v == null || v.trim().isEmpty ? 'Requis' : null,
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _category,
-              decoration: const InputDecoration(
-                  labelText: 'Catégorie', border: OutlineInputBorder()),
+            FutureBuilder<List<String>>(
+              future: _dao.categories(),
+              builder: (_, snap) {
+                final options = snap.data ?? const <String>[];
+                return Autocomplete<String>(
+                  initialValue: TextEditingValue(text: _category.text),
+                  optionsBuilder: (text) {
+                    final q = text.text.toLowerCase().trim();
+                    if (q.isEmpty) return options;
+                    return options.where((c) => c.toLowerCase().contains(q));
+                  },
+                  onSelected: (v) => _category.text = v,
+                  fieldViewBuilder:
+                      (ctx, ctrl, focus, _) {
+                    // Sync the autocomplete controller with our state controller
+                    ctrl.text = _category.text;
+                    ctrl.selection = TextSelection.collapsed(
+                        offset: ctrl.text.length);
+                    return TextFormField(
+                      controller: ctrl,
+                      focusNode: focus,
+                      decoration: const InputDecoration(
+                        labelText: 'Catégorie',
+                        hintText: 'Boissons, Alimentation…',
+                        prefixIcon: Icon(Icons.label_outline),
+                      ),
+                      onChanged: (v) => _category.text = v,
+                    );
+                  },
+                );
+              },
             ),
             const SizedBox(height: 12),
             Row(children: [
