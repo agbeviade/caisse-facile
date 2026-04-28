@@ -84,12 +84,6 @@ class AppTheme {
                   brightness == Brightness.light ? 0.35 : 0.18)),
         ),
       ),
-      listTileTheme: ListTileThemeData(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
