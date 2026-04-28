@@ -1,0 +1,102 @@
+workflows:
+  android-debug:
+    name: Android Debug APK
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - supabase
+      vars:
+        PACKAGE_NAME: "com.caissefacile.app"
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "main"
+          include: true
+    scripts:
+      - name: Bootstrap Flutter platforms
+        working_directory: mobile
+        script: |
+          flutter create --platforms=android,ios --org com.caissefacile .
+      - name: Set Android minSdk to 21
+        working_directory: mobile
+        script: |
+          sed -i '' 's/minSdkVersion .*/minSdkVersion 21/' android/app/build.gradle 2>/dev/null \
+            || sed -i 's/minSdkVersion .*/minSdkVersion 21/' android/app/build.gradle \
+            || true
+      - name: Pub get
+        working_directory: mobile
+        script: flutter pub get
+      - name: Generate native splash
+        working_directory: mobile
+        script: dart run flutter_native_splash:create
+      - name: Analyze
+        working_directory: mobile
+        script: flutter analyze --no-fatal-infos || true
+      - name: Build Debug APK
+        working_directory: mobile
+        script: |
+          flutter build apk --debug \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+    artifacts:
+      - mobile/build/**/outputs/**/*.apk
+      - mobile/build/**/outputs/**/mapping.txt
+
+  android-release:
+    name: Android Release APK + AAB
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - keystore_credentials   # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_PASSWORD, CM_KEY_ALIAS
+        - supabase
+      vars:
+        PACKAGE_NAME: "com.caissefacile.app"
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*"
+          include: true
+    scripts:
+      - name: Bootstrap Flutter platforms
+        working_directory: mobile
+        script: |
+          flutter create --platforms=android,ios --org com.caissefacile .
+      - name: Set up keystore
+        working_directory: mobile
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=/tmp/keystore.jks
+          EOF
+      - name: Pub get
+        working_directory: mobile
+        script: flutter pub get
+      - name: Generate native splash
+        working_directory: mobile
+        script: dart run flutter_native_splash:create
+      - name: Build release APK
+        working_directory: mobile
+        script: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+      - name: Build release AAB
+        working_directory: mobile
+        script: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+    artifacts:
+      - mobile/build/**/outputs/**/*.apk
+      - mobile/build/**/outputs/**/*.aab
