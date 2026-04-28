@@ -247,12 +247,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     return options.where((c) => c.toLowerCase().contains(q));
                   },
                   onSelected: (v) => _category.text = v,
-                  fieldViewBuilder:
-                      (ctx, ctrl, focus, _) {
-                    // Sync the autocomplete controller with our state controller
-                    ctrl.text = _category.text;
-                    ctrl.selection = TextSelection.collapsed(
-                        offset: ctrl.text.length);
+                  fieldViewBuilder: (ctx, ctrl, focus, onSubmit) {
                     return TextFormField(
                       controller: ctrl,
                       focusNode: focus,
@@ -262,6 +257,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         prefixIcon: Icon(Icons.label_outline),
                       ),
                       onChanged: (v) => _category.text = v,
+                      onFieldSubmitted: (_) => onSubmit(),
                     );
                   },
                 );

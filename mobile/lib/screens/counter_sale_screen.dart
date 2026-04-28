@@ -34,6 +34,8 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
       _cart.insert(0, newItem);
       _cartListKey.currentState?.insertItem(0,
           duration: const Duration(milliseconds: 320));
+      // Trigger a rebuild so the bottom total + empty state overlay update.
+      setState(() {});
     }
   }
 
@@ -275,7 +277,7 @@ class _CounterSaleScreenState extends State<CounterSaleScreen> {
         _customer = null;
         _onCredit = false;
       });
-      // Lottie checkmark, auto-dismisses after 1.5s
+      // Animated checkmark overlay, auto-dismisses after 1.5s
       await showSuccessOverlay(context, message: msg);
     } catch (e) {
       if (!mounted) return;

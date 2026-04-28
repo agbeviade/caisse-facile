@@ -123,12 +123,35 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12)),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(builders: {
-        TargetPlatform.android: SharedAxisPageTransitionsBuilder(
-            transitionType: SharedAxisTransitionType.horizontal),
-        TargetPlatform.iOS: SharedAxisPageTransitionsBuilder(
-            transitionType: SharedAxisTransitionType.horizontal),
+        TargetPlatform.android: _SharedAxisBuilder(),
+        TargetPlatform.iOS: _SharedAxisBuilder(),
       }),
       splashFactory: InkSparkle.splashFactory,
+    );
+  }
+}
+
+/// Adapter that lets us use the official Material `SharedAxisTransition`
+/// (from the `animations` package) inside a `PageTransitionsTheme`.
+/// The `animations` package itself does not ship such a builder, so we write
+/// the thin wrapper here.
+class _SharedAxisBuilder extends PageTransitionsBuilder {
+  const _SharedAxisBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return SharedAxisTransition(
+      animation: animation,
+      secondaryAnimation: secondaryAnimation,
+      transitionType: SharedAxisTransitionType.horizontal,
+      fillColor: Theme.of(context).scaffoldBackgroundColor,
+      child: child,
     );
   }
 }
