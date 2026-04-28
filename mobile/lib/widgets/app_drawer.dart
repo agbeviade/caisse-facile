@@ -69,7 +69,19 @@ class _AppDrawerState extends State<AppDrawer> {
     final shopName = AuthService.instance.shopName ?? 'Boutique';
     final email = AuthService.instance.currentUser?.email ?? '';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Drawer(
+      backgroundColor: isDark ? const Color(0xFF161A18) : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 16,
+      shadowColor: Colors.black.withOpacity(0.4),
+      width: 300,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
       child: SafeArea(
         child: Column(
           children: [
