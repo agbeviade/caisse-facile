@@ -196,7 +196,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         imagePath: _imagePath,
                         name: _name.text.isEmpty ? '?' : _name.text,
                         size: 120,
-                        radius: 16),
+                        radius: 16,
+                        heroTag: widget.product?.id != null
+                            ? 'product-${widget.product!.id}'
+                            : null),
                     Positioned(
                       bottom: 0,
                       right: 0,

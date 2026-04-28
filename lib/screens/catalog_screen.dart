@@ -8,6 +8,7 @@ import '../widgets/barcode_scanner_screen.dart';
 import '../widgets/product_thumb.dart';
 import 'product_form_screen.dart';
 import 'labels_screen.dart';
+import '../widgets/skeletons.dart';
 
 enum _ViewMode { list, grid }
 
@@ -26,6 +27,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   final _searchCtrl = TextEditingController();
   List<Product> _products = [];
   _ViewMode _mode = _activeViewMode;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -36,7 +38,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Future<void> _load() async {
     final p = await _dao.all(search: _searchCtrl.text.trim());
     if (!mounted) return;
-    setState(() => _products = p);
+    setState(() {
+      _products = p;
+      _loading = false;
+    });
   }
 
   Future<void> _addNew() async {
@@ -135,23 +140,40 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           ),
           Expanded(
-            child: _products.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.inventory_2,
-                              size: 80, color: Colors.grey),
-                          SizedBox(height: 12),
-                          Text('Aucun produit',
-                              style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child:
+                    SlideTransition(
+                      position: Tween<Offset>(
+                              begin: const Offset(0, 0.02), end: Offset.zero)
+                          .animate(anim),
+                      child: child,
                     ),
-                  )
-                : (_mode == _ViewMode.list ? _buildList() : _buildGrid()),
+              ),
+              child: _loading
+                  ? const SkeletonProductList(key: ValueKey('skel'))
+                  : (_products.isEmpty
+                      ? EmptyState(
+                          key: const ValueKey('empty'),
+                          icon: Icons.inventory_2_outlined,
+                          title: 'Aucun produit',
+                          subtitle:
+                              'Ajoute ton premier produit pour commencer.',
+                          actionLabel: 'Nouveau produit',
+                          onAction: _addNew,
+                        )
+                      : (_mode == _ViewMode.list
+                          ? KeyedSubtree(
+                              key: const ValueKey('list'),
+                              child: _buildList())
+                          : KeyedSubtree(
+                              key: const ValueKey('grid'),
+                              child: _buildGrid()))),
+            ),
           )
         ],
       ),
@@ -176,7 +198,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                ProductThumb(imagePath: p.imagePath, name: p.name, size: 52),
+                ProductThumb(
+                    imagePath: p.imagePath,
+                    name: p.name,
+                    size: 52,
+                    heroTag: 'product-${p.id}'),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -253,7 +279,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         imagePath: p.imagePath,
                         name: p.name,
                         size: double.infinity,
-                        radius: 10),
+                        radius: 10,
+                        heroTag: 'product-${p.id}'),
                   ),
                   const SizedBox(height: 8),
                   Text(p.name,

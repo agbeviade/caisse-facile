@@ -3,6 +3,7 @@ import '../db/customer_dao.dart';
 import '../models/customer.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/skeletons.dart';
 import 'customer_detail_screen.dart';
 
 class CustomersScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   final _searchCtrl = TextEditingController();
   List<Customer> _list = [];
   double _totalDebt = 0;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     setState(() {
       _list = c;
       _totalDebt = t;
+      _loading = false;
     });
   }
 
@@ -82,10 +85,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
             ),
           ),
           Expanded(
-            child: _list.isEmpty
-                ? const Center(
-                    child: Text('Aucun acheteur',
-                        style: TextStyle(color: Colors.grey)))
+            child: _loading
+                ? const SkeletonProductList()
+                : _list.isEmpty
+                ? EmptyState(
+                    icon: Icons.group_outlined,
+                    title: 'Aucun acheteur',
+                    subtitle: 'Ajoute tes habitués pour suivre les crédits.',
+                    actionLabel: 'Nouvel acheteur',
+                    onAction: _addCustomer)
                 : ListView.separated(
                     itemCount: _list.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),

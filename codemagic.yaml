@@ -27,6 +27,8 @@ workflows:
           sed -i 's/minSdkVersion .*/minSdkVersion 21/' android/app/build.gradle || true
       - name: Pub get
         script: flutter pub get
+      - name: Generate native splash
+        script: dart run flutter_native_splash:create
       - name: Analyze
         script: flutter analyze --no-fatal-infos || true
       - name: Build Debug APK
@@ -70,6 +72,8 @@ workflows:
           EOF
       - name: Pub get
         script: flutter pub get
+      - name: Generate native splash
+        script: dart run flutter_native_splash:create
       - name: Build release APK
         script: |
           flutter build apk --release \

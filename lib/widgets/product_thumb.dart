@@ -8,6 +8,7 @@ class ProductThumb extends StatelessWidget {
   final String name;
   final double size;
   final double radius;
+  final Object? heroTag;
 
   const ProductThumb({
     super.key,
@@ -15,22 +16,31 @@ class ProductThumb extends StatelessWidget {
     required this.name,
     this.size = 56,
     this.radius = 10,
+    this.heroTag,
   });
 
   @override
   Widget build(BuildContext context) {
     final r = BorderRadius.circular(radius);
+    Widget child;
     if (imagePath != null && imagePath!.isNotEmpty) {
       final file = File(imagePath!);
       if (file.existsSync()) {
-        return ClipRRect(
+        child = ClipRRect(
           borderRadius: r,
           child: Image.file(file,
               width: size, height: size, fit: BoxFit.cover),
         );
+      } else {
+        child = _placeholder(context, r);
       }
+    } else {
+      child = _placeholder(context, r);
     }
-    return _placeholder(context, r);
+    if (heroTag != null) {
+      return Hero(tag: heroTag!, child: Material(color: Colors.transparent, child: child));
+    }
+    return child;
   }
 
   Widget _placeholder(BuildContext context, BorderRadius r) {

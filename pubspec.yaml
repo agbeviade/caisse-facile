@@ -42,10 +42,25 @@ dependencies:
   # Image picker (camera / gallery) for product photos
   image_picker: ^1.1.2
 
+  # Polish phase
+  google_fonts: ^6.2.1
+  fl_chart: ^0.69.0
+  shimmer: ^3.0.0
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
+  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
+
+# ===== Native splash screen (color-only, no image asset) =====
+flutter_native_splash:
+  color: "#0E7C3A"
+  color_dark: "#0E7C3A"
+  android_12:
+    color: "#0E7C3A"
+    color_dark: "#0E7C3A"

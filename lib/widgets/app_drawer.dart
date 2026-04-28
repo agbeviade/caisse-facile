@@ -11,6 +11,7 @@ import '../screens/delivery_sessions_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/reports_screen.dart';
+import '../screens/settings_screen.dart';
 import '../screens/stock_movements_screen.dart';
 import '../screens/suppliers_screen.dart';
 import '../services/auth_service.dart';
@@ -194,6 +195,9 @@ class _AppDrawerState extends State<AppDrawer> {
                       onTap: () => _go(const ReportsScreen())),
                   _item(Icons.notifications_active, 'Alertes',
                       onTap: () => _go(const AlertsScreen())),
+                  const Divider(),
+                  _item(Icons.settings_outlined, 'Paramètres',
+                      onTap: () => _go(const SettingsScreen())),
                   if (Env.hasSupabase) ...[
                     const Divider(),
                     _section('Cloud'),
